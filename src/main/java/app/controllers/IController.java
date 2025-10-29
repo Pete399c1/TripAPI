@@ -1,0 +1,14 @@
+package app.controllers;
+
+import io.javalin.http.Context;
+
+public interface IController<T, I> {
+    void getById(Context ctx);
+    void getAll(Context ctx);
+    void create(Context ctx);
+    void update(Context ctx);
+    void delete(Context ctx);
+    boolean validatePrimaryKey(I i);
+    T validateEntity(Context ctx);
+
+}
