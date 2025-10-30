@@ -1,20 +1,22 @@
 package app.services;
 
+import app.config.HibernateConfig;
 import app.daos.GuideDAO;
 import app.dtos.GuideDTO;
 import app.dtos.TripDTO;
 import app.entities.Guide;
 import app.entities.Trip;
+import jakarta.persistence.EntityManagerFactory;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class GuideService implements IService<GuideDTO, Integer> {
-    private final GuideDAO guideDAO;
+    private final EntityManagerFactory emf = HibernateConfig.getEntityManagerFactory();
+    private final GuideDAO guideDAO = GuideDAO.getInstance(emf);
 
-    public GuideService(GuideDAO guideDAO){
-        this.guideDAO = guideDAO;
-    }
+
 
     @Override
     public GuideDTO create(GuideDTO guideDTO) {
@@ -66,4 +68,6 @@ public class GuideService implements IService<GuideDTO, Integer> {
         Guide guide = guideDAO.getById(id);
         return guide != null;
     }
+
+
 }

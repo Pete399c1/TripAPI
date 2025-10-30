@@ -1,23 +1,26 @@
 package app.services;
 
+import app.config.HibernateConfig;
 import app.daos.GuideDAO;
 import app.daos.TripDAO;
 import app.dtos.TripDTO;
+import app.dtos.packing.PackageItemDTO;
 import app.entities.Guide;
 import app.entities.Trip;
+import app.enums.Category;
+import app.exceptions.ApiException;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class TripService implements IService<TripDTO,Integer> {
-    private final TripDAO tripDAO;
-    private final GuideDAO guideDAO;
-
-    public TripService(TripDAO tripDAO, GuideDAO guideDAO) {
-        this.tripDAO = tripDAO;
-        this.guideDAO = guideDAO;
-    }
+    private final EntityManagerFactory emf = HibernateConfig.getEntityManagerFactory();
+    private final TripDAO tripDAO = TripDAO.getInstance(emf);
+    private final GuideDAO guideDAO = GuideDAO.getInstance(emf);
+    private final PackingService packingService = new PackingService();
 
     @Override
     public TripDTO create(TripDTO tripDTO) {
@@ -38,11 +41,18 @@ public class TripService implements IService<TripDTO,Integer> {
     @Override
     public TripDTO getById(Integer id) {
         Trip trip = tripDAO.getById(id);
-        if(trip != null){
-            return new TripDTO(trip);
-        }else{
-            return null;
+
+        if(trip == null){
+            throw new ApiException(404, "The Trip was not found");
         }
+
+        TripDTO tripDTO = new TripDTO(trip);
+
+        // Adding the Packing Items automatic from the extern api
+        if(trip.getCategory() != null){
+            tripDTO.setPackingItems(packingService.fetchPackingItems(trip.getCategory().toString()));
+        }
+        return tripDTO;
     }
 
     @Override
@@ -84,5 +94,24 @@ public class TripService implements IService<TripDTO,Integer> {
     public boolean validatePrimaryKey(Integer id){
             Trip trip = tripDAO.getById(id);
             return trip != null;
+    }
+
+    public List<TripDTO> getTripsByCategory(String category){
+        return tripDAO.getAll().stream()
+                .filter(trip -> trip.getCategory().name().equalsIgnoreCase(category))
+                .map(TripDTO::new)
+                .toList();
+    }
+
+
+
+    // Get total weight package stuff for Trip
+    public int getTotalPackingWeightByTrip(int id){
+        // Getting packing by using the method getById()
+        TripDTO trip = getById(id);
+        return trip.getPackingItems().stream()
+                .mapToInt(PackageItemDTO::getTotalWeight)
+                .sum();
+
     }
 }

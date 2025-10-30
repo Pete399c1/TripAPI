@@ -1,5 +1,6 @@
 package app.dtos;
 
+import app.dtos.packing.PackageItemDTO;
 import app.entities.Guide;
 import app.entities.Trip;
 import app.enums.Category;
@@ -9,6 +10,7 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Getter
@@ -29,6 +31,9 @@ public class TripDTO {
     private Category category;
     private Set<GuideDTO> guides = new HashSet<>();
 
+    // Get from external api
+    private List<PackageItemDTO> packingItems;
+
     public TripDTO(Trip trip){
         this.id = trip.getId();
         this.name = trip.getName();
@@ -45,7 +50,9 @@ public class TripDTO {
             for(Guide guide : trip.getGuides()){
                 this.guides.add(new GuideDTO(guide));
             }
-
         }
+
+        // The list is empty waiting till the service calls the api
+        this.packingItems = null;
     }
 }

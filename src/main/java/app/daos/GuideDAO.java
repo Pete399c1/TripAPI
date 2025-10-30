@@ -10,7 +10,7 @@ public class GuideDAO implements IDAO<Guide, Integer> {
     private static GuideDAO instance;
     private final EntityManagerFactory emf;
 
-    private GuideDAO(EntityManagerFactory emf){
+    public GuideDAO(EntityManagerFactory emf){
         this.emf = emf;
     }
 

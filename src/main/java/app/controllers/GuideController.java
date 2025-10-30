@@ -14,15 +14,9 @@ import jakarta.persistence.EntityManagerFactory;
 import java.util.List;
 
 public class GuideController implements IController<Guide, Integer> {
-    private final GuideService guideService;
-    private final GuideDAO guideDAO;
-
-    public GuideController(){
-        EntityManagerFactory emf = HibernateConfig.getEntityManagerFactory();
-        this.guideDAO = GuideDAO.getInstance(emf);
-        this.guideService = new GuideService(guideDAO);
-    }
-
+    private final EntityManagerFactory emf = HibernateConfig.getEntityManagerFactory();
+    private final GuideDAO guideDAO = GuideDAO.getInstance(emf);
+    private final GuideService guideService = new GuideService();
 
     @Override
     public void getById(Context ctx) {

@@ -6,6 +6,7 @@ import app.daos.TripDAO;
 import app.dtos.TripDTO;
 import app.entities.Trip;
 import app.exceptions.ApiException;
+import app.services.PackingService;
 import app.services.TripService;
 import io.javalin.http.Context;
 import jakarta.persistence.EntityManagerFactory;
@@ -13,22 +14,11 @@ import jakarta.persistence.EntityManagerFactory;
 import java.util.List;
 
 public class TripController implements IController<Trip, Integer> {
-    private final TripService tripService;
-    private final TripDAO tripDAO;
-    private final GuideDAO guideDAO;
-
-    public TripController(){
-        EntityManagerFactory emf = HibernateConfig.getEntityManagerFactory();
-
-        // Dao
-        this.tripDAO = TripDAO.getInstance(emf);
-        this.guideDAO = GuideDAO.getInstance(emf);
-
-        this.tripService = new TripService(tripDAO, guideDAO);
-    }
-
-
-
+    private final EntityManagerFactory emf = HibernateConfig.getEntityManagerFactory();
+    private final TripDAO tripDAO = TripDAO.getInstance(emf);
+    private final GuideDAO guideDAO = GuideDAO.getInstance(emf);
+    private final PackingService packingService = new PackingService();
+    private final TripService tripService = new TripService();
 
     @Override
     public void getById(Context ctx) {
@@ -118,4 +108,52 @@ public class TripController implements IController<Trip, Integer> {
     public Trip validateEntity(Context ctx) {
         return null;
     }
+
+    public void getByCategory(Context ctx){
+        String category = ctx.queryParam("category");
+
+        if(category == null || category.isEmpty()){
+            ctx.status(200).json(tripService.getAll());
+            return;
+        }
+        List<TripDTO> trips = tripService.getTripsByCategory(category);
+
+        ctx.status(200).json(trips);
+    }
+
+    // Get packing items for Trip
+    public void getPackingItems(Context ctx){
+        int tripId = ctx.pathParamAsClass("id", Integer.class)
+                .check(this::validatePrimaryKey, "Not a valid trip id")
+                .get();
+
+        TripDTO tripDTO = tripService.getById(tripId);
+
+        if(tripDTO == null){
+            throw new ApiException(404,"Trip was not found");
+        }
+
+        //Getting packing items by using PackingService based on trip Category
+        var items = packingService.fetchPackingItems(tripDTO.getCategory().name());
+        ctx.status(200).json(items);
+    }
+
+    // Get Total packing weight for Trip
+    public void getPackingWeightForTrip(Context ctx){
+        int tripId = ctx.pathParamAsClass("id", Integer.class)
+                .check(this::validatePrimaryKey, "Not a valid trip id")
+                .get();
+
+        TripDTO tripDTO = tripService.getById(tripId);
+
+        if(tripDTO == null){
+            throw  new ApiException(404,"Trip was not found");
+        }
+
+        // Calculate total weight by using PackingService
+        int totalWeight = packingService.fetchTotalWeight(tripDTO.getCategory().name());
+        ctx.status(200).json(totalWeight);
+    }
+
+
 }

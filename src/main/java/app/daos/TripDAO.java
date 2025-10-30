@@ -10,8 +10,7 @@ public class TripDAO implements IDAO<Trip, Integer>{
     private static TripDAO instance;
     private final EntityManagerFactory emf;
 
-    //maybe private to make sure nobody can take the dao
-    private TripDAO(EntityManagerFactory emf){
+    public TripDAO(EntityManagerFactory emf){
         this.emf = emf;
     }
 
