@@ -15,6 +15,7 @@ public class GuideRoutes {
     public EndpointGroup getGuideRoutes(){
         return () -> {
             get("/", guideController::getAll);
+            get("/totalprice", guideController::getTotalPricePerGuide);
             get("/{id}", guideController::getById);
             post("/", guideController::create);
             put("/{id}", guideController::update);

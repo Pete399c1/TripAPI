@@ -3,7 +3,7 @@ package app.services;
 import app.config.HibernateConfig;
 import app.daos.GuideDAO;
 import app.dtos.GuideDTO;
-import app.dtos.TripDTO;
+import app.dtos.GuideTotalPriceDTO;
 import app.entities.Guide;
 import app.entities.Trip;
 import app.exceptions.ApiException;
@@ -80,6 +80,21 @@ public class GuideService implements IService<GuideDTO, Integer> {
         }
 
         return true;
+    }
+
+    public List<GuideTotalPriceDTO> getTotalPricePerGuide(){
+        List<Guide> guides = guideDAO.getAll();
+
+        return guides.stream()
+                .map(guide -> {
+                    BigDecimal total = guide.getTrips().stream()
+                            .map(Trip::getPrice)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                    return new GuideTotalPriceDTO(guide.getId(), total);
+
+                })
+                .toList();
     }
 
     public boolean validatePrimaryKey(Integer id) {

@@ -11,6 +11,7 @@ public class TripRoutes {
     // Remember this http://localhost:7070/api/v1/trips?category=city
     public EndpointGroup getTripRoutes(){
         return () -> {
+            get("/all", tripController::getAll);
             get("/", tripController::getByCategory);
             get("/{id}", tripController::getById);
             get("/{id}/packing", tripController::getPackingItems);

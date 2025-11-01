@@ -3,6 +3,7 @@ package app.controllers;
 import app.config.HibernateConfig;
 import app.daos.GuideDAO;
 import app.dtos.GuideDTO;
+import app.dtos.GuideTotalPriceDTO;
 import app.entities.Guide;
 import app.exceptions.ApiException;
 import app.exceptions.ValidationException;
@@ -110,6 +111,24 @@ public class GuideController implements IController<Guide, Integer> {
             ctx.status(e.getCode()).json(Map.of("Error", e.getMessage()));
         }catch (Exception e){
             ctx.status(500).json(Map.of("Error", "An Internal server error"));
+        }
+    }
+
+    public void getTotalPricePerGuide(Context ctx){
+        try {
+            List<GuideTotalPriceDTO> totals = guideService.getTotalPricePerGuide();
+
+            if(totals.isEmpty()){
+                ctx.status(404).json(Map.of("Error", "No guides was found")); // The list is empty
+                return;
+            }
+
+            ctx.status(200).json(totals);
+
+        }catch (ApiException e){
+            ctx.status(e.getCode()).json(Map.of("Error", e.getMessage()));
+        }catch (Exception e){
+            ctx.status(500).json(Map.of("Error", "An Internal Server error"));
         }
     }
 
