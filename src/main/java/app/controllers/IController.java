@@ -9,6 +9,5 @@ public interface IController<T, I> {
     void update(Context ctx);
     void delete(Context ctx);
     boolean validatePrimaryKey(I i);
-    T validateEntity(Context ctx);
 
 }

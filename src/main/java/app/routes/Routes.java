@@ -12,12 +12,15 @@ import static io.javalin.apibuilder.ApiBuilder.path;
 public class Routes {
 
     private TripRoutes tripRoutes = new TripRoutes();
+    private GuideRoutes guideRoutes = new GuideRoutes();
 
     public EndpointGroup getRoutes(){
         return () -> {
                 get("/", ctx -> ctx.result("Hello from the Trip api"));
 
+
                 path("/trips", tripRoutes.getTripRoutes());
+                path("/guides", guideRoutes.getGuideRoutes());
         };
     }
 

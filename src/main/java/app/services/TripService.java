@@ -4,15 +4,11 @@ import app.config.HibernateConfig;
 import app.daos.GuideDAO;
 import app.daos.TripDAO;
 import app.dtos.TripDTO;
-import app.dtos.packing.PackageItemDTO;
 import app.entities.Guide;
 import app.entities.Trip;
-import app.enums.Category;
 import app.exceptions.ApiException;
-import jakarta.persistence.EntityManager;
+import app.exceptions.ValidationException;
 import jakarta.persistence.EntityManagerFactory;
-
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,6 +20,8 @@ public class TripService implements IService<TripDTO,Integer> {
 
     @Override
     public TripDTO create(TripDTO tripDTO) {
+        validateDto(tripDTO);
+
         Trip trip = new Trip(tripDTO);
 
         Trip created = tripDAO.create(trip);
@@ -42,6 +40,7 @@ public class TripService implements IService<TripDTO,Integer> {
     public TripDTO getById(Integer id) {
         Trip trip = tripDAO.getById(id);
 
+        // Runtime exception
         if(trip == null){
             throw new ApiException(404, "The Trip was not found");
         }
@@ -52,13 +51,19 @@ public class TripService implements IService<TripDTO,Integer> {
         if(trip.getCategory() != null){
             tripDTO.setPackingItems(packingService.fetchPackingItems(trip.getCategory().toString()));
         }
+
         return tripDTO;
     }
 
     @Override
     public TripDTO update(Integer id, TripDTO tripDTO) {
+        validateDto(tripDTO);
+
         Trip existing  = tripDAO.getById(id);
-        if(existing == null) return  null;
+
+        if(existing == null){
+            throw new ApiException(404, "Trip was not found");
+        }
 
         existing.setName(tripDTO.getName());
         existing.setStartTime(tripDTO.getStartTime());
@@ -69,12 +74,19 @@ public class TripService implements IService<TripDTO,Integer> {
         existing.setCategory(tripDTO.getCategory());
 
         Trip updated = tripDAO.update(existing);
+
         return new TripDTO(updated);
     }
 
     @Override
     public boolean delete(Integer id) {
-        return tripDAO.delete(id);
+        boolean deleted = tripDAO.delete(id);
+
+        if(!deleted){
+            throw new ApiException(404, "Trip was not found");
+        }
+
+        return true;
     }
 
     public TripDTO addGuideToTrip(int tripId, int guideId){
@@ -82,7 +94,7 @@ public class TripService implements IService<TripDTO,Integer> {
         Guide guide = guideDAO.getById(guideId);
 
         if(trip == null || guide == null){
-            return null;
+            throw new ApiException(404, "The Trip or Guide was not found");
         }
 
         trip.addGuide(guide);
@@ -92,26 +104,32 @@ public class TripService implements IService<TripDTO,Integer> {
     }
 
     public boolean validatePrimaryKey(Integer id){
-            Trip trip = tripDAO.getById(id);
-            return trip != null;
+             return tripDAO.getById(id) != null;
     }
 
     public List<TripDTO> getTripsByCategory(String category){
-        return tripDAO.getAll().stream()
+        List<TripDTO> trips = tripDAO.getAll().stream()
                 .filter(trip -> trip.getCategory().name().equalsIgnoreCase(category))
                 .map(TripDTO::new)
                 .toList();
+
+        if(trips.isEmpty()){
+            throw new ApiException(404, "There was no trips found for category: " + category);
+        }
+
+        return trips;
     }
 
-
-
-    // Get total weight package stuff for Trip
-    public int getTotalPackingWeightByTrip(int id){
-        // Getting packing by using the method getById()
-        TripDTO trip = getById(id);
-        return trip.getPackingItems().stream()
-                .mapToInt(PackageItemDTO::getTotalWeight)
-                .sum();
-
+    @Override
+    public void validateDto(TripDTO tripDTO){
+        if(tripDTO == null)
+            throw new ValidationException("The tripDTO cannot be null");
+        if(tripDTO.getName() == null || tripDTO.getName().isEmpty())
+            throw new ValidationException("The trip name cannot be empty");
+        if(tripDTO.getCategory() == null)
+            throw new ValidationException("The trip category cannot be null");
+        if(tripDTO.getPrice() != null && tripDTO.getPrice().doubleValue() < 0)
+            throw new ValidationException("The price cannot be negative");
     }
+
 }

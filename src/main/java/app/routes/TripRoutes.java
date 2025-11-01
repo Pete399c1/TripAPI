@@ -17,8 +17,9 @@ public class TripRoutes {
             get("/{id}/packing/weight", tripController::getPackingWeightForTrip);
             post("/", tripController::create);
             put("/{id}", tripController::update);
-            delete("/{id}", tripController::delete);
             put("/{tripId}/guides/{guideId}", tripController::linkGuide);
+            delete("/{id}", tripController::delete);
+
         };
     }
 

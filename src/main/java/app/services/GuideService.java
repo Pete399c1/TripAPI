@@ -6,6 +6,8 @@ import app.dtos.GuideDTO;
 import app.dtos.TripDTO;
 import app.entities.Guide;
 import app.entities.Trip;
+import app.exceptions.ApiException;
+import app.exceptions.ValidationException;
 import jakarta.persistence.EntityManagerFactory;
 
 import java.math.BigDecimal;
@@ -20,6 +22,8 @@ public class GuideService implements IService<GuideDTO, Integer> {
 
     @Override
     public GuideDTO create(GuideDTO guideDTO) {
+        validateDto(guideDTO);
+
         Guide guide = new Guide(guideDTO);
 
         Guide created = guideDAO.create(guide);
@@ -37,37 +41,61 @@ public class GuideService implements IService<GuideDTO, Integer> {
     @Override
     public GuideDTO getById(Integer id) {
        Guide guide = guideDAO.getById(id);
-       if(guide != null){
-           return new GuideDTO(guide);
-       }else{
-           return  null;
+
+       // Returns 404 not found in the controller
+       if(guide == null){
+           throw new ApiException(404, "Guide was not found");
        }
+
+       return new GuideDTO(guide);
     }
 
     @Override
     public GuideDTO update(Integer id, GuideDTO guideDTO) {
+        validateDto(guideDTO);
+
         Guide existing  = guideDAO.getById(id);
-        if(existing == null) return  null;
+
+        if(existing == null){
+            throw new ApiException(404, "Guide was not found");
+        }
 
         existing.setName(guideDTO.getName());
         existing.setEmail(guideDTO.getEmail());
         existing.setPhoneNumber(guideDTO.getPhoneNumber());
         existing.setYearsOfExperience(guideDTO.getYearsOfExperience());
 
-
         Guide updated = guideDAO.update(existing);
+
         return new GuideDTO(updated);
     }
 
     @Override
     public boolean delete(Integer id) {
-        return guideDAO.delete(id);
+        boolean deleted = guideDAO.delete(id);
+
+        // Runtime exception
+        if(!deleted){
+            throw new ApiException(404, "Guide was not found");
+        }
+
+        return true;
     }
 
     public boolean validatePrimaryKey(Integer id) {
-        Guide guide = guideDAO.getById(id);
-        return guide != null;
+        return guideDAO.getById(id) != null;
     }
 
+    @Override
+    public void validateDto(GuideDTO guideDTO){
+        if(guideDTO == null)
+            throw new ValidationException("The guideDTO cannot be null");
+        if(guideDTO.getName() == null || guideDTO.getName().isEmpty())
+            throw new ValidationException("The guide name cannot be empty");
+        if(guideDTO.getEmail() == null || guideDTO.getEmail().isEmpty())
+            throw new ValidationException("The guide email cannot be null");
+        if(guideDTO.getYearsOfExperience() < 0)
+            throw new ValidationException("The years of experience cannot be negative");
+    }
 
 }

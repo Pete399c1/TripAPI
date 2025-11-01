@@ -8,4 +8,5 @@ public interface IService<DTO,ID>{
     DTO getById(ID id);
     DTO update(ID id, DTO dto);
     boolean delete(ID id);
+    void validateDto(DTO dto);
 }

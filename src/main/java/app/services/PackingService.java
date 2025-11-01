@@ -5,6 +5,7 @@ import app.dtos.packing.PackingApiResponse;
 import app.exceptions.ApiException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import lombok.NoArgsConstructor;
@@ -21,7 +22,10 @@ import java.util.List;
 public class PackingService {
     private  static final String API_URL = System.getenv("PACKING_API_URL");
     // objectMapper set with JavaTimeModule so ZonedDateTime attributes can be pase from the api
-    private static final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    private static final ObjectMapper objectMapper = new ObjectMapper()
+            .registerModule(new JavaTimeModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
     private static final HttpClient httpClient = HttpClient.newHttpClient();
 
     // Getting the packageList for specific category from the api
@@ -50,6 +54,7 @@ public class PackingService {
 
             // Parse json response into DTO
             PackingApiResponse packingApiResponse = objectMapper.readValue(response.body(), PackingApiResponse.class);
+
             return packingApiResponse.getItems();
 
         }catch(IOException e){

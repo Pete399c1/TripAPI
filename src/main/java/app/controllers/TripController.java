@@ -6,12 +6,14 @@ import app.daos.TripDAO;
 import app.dtos.TripDTO;
 import app.entities.Trip;
 import app.exceptions.ApiException;
+import app.exceptions.ValidationException;
 import app.services.PackingService;
 import app.services.TripService;
 import io.javalin.http.Context;
 import jakarta.persistence.EntityManagerFactory;
 
 import java.util.List;
+import java.util.Map;
 
 public class TripController implements IController<Trip, Integer> {
     private final EntityManagerFactory emf = HibernateConfig.getEntityManagerFactory();
@@ -22,81 +24,113 @@ public class TripController implements IController<Trip, Integer> {
 
     @Override
     public void getById(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class)
-                .check(this::validatePrimaryKey, "Not a valid id")
-                .get();
+        try {
+            int id = ctx.pathParamAsClass("id", Integer.class).get();
 
-        TripDTO tripDTO = tripService.getById(id);
+            if (!validatePrimaryKey(id)) {
+                throw new ValidationException("Not a valid id");
+            }
 
-        if(tripDTO == null){
-            throw new ApiException(404, "The Trip was not found"); // 404 not found
+            TripDTO tripDTO = tripService.getById(id);
+
+            ctx.status(200).json(tripDTO); // 200 ok
+
+        }catch (ValidationException e){
+            ctx.status(400).json(Map.of("Error", e.getMessage())); // 400 bad request
+        }catch (ApiException e){
+            ctx.status(e.getCode()).json(Map.of("Error", e.getMessage()));
+        }catch (Exception e){
+            ctx.status(500).json(Map.of("Error", "An Internal server error"));
         }
-        ctx.status(200).json(tripDTO); // 200 ok
     }
 
     @Override
     public void getAll(Context ctx) {
-        List<TripDTO> tripDTOS = tripService.getAll();
-        ctx.status(200).json(tripDTOS);
+        try{
+         List<TripDTO> tripDTOS = tripService.getAll();
+
+         ctx.status(200).json(tripDTOS);
+
+        }catch (Exception e){
+            ctx.status(500).json(Map.of("Error", "An Internal server error"));
+        }
     }
 
     @Override
     public void create(Context ctx) {
-        TripDTO tripDTO = ctx.bodyAsClass(TripDTO.class);
+        try {
+            TripDTO tripDTO = ctx.bodyAsClass(TripDTO.class);
 
-        // Make a trip using service
-        TripDTO dto = tripService.create(tripDTO);
+            // Make a trip using service
+            TripDTO dto = tripService.create(tripDTO);
 
-        ctx.status(201).json(dto); // 201 created
+            ctx.status(201).json(dto); // 201 created
+
+        }catch (ValidationException e){
+            ctx.status(400).json(Map.of("Error", e.getMessage()));
+        }catch (Exception e){
+            ctx.status(500).json(Map.of("Error", "An Internal server error"));
+        }
     }
 
     @Override
     public void update(Context ctx) {
-        int id = ctx.pathParamAsClass("id",Integer.class)
-                .check(this::validatePrimaryKey,"Not a valid id")
-                .get();
+        try {
+            int id = ctx.pathParamAsClass("id", Integer.class).get();
 
-        // Read body as TripDTO
-        TripDTO tripDTO = ctx.bodyAsClass(TripDTO.class);
+            // Read body as TripDTO
+            TripDTO tripDTO = ctx.bodyAsClass(TripDTO.class);
 
-        // Update by service
-        TripDTO updated = tripService.update(id, tripDTO);
+            // Update by service
+            TripDTO updated = tripService.update(id, tripDTO);
 
-        if(updated == null){
-            throw new ApiException(404,"Trip was not found");
+            ctx.status(200).json(updated);
+
+        }catch (ValidationException e){
+            ctx.status(400).json(Map.of("Error", e.getMessage()));
+        }catch (ApiException e){
+            ctx.status(e.getCode()).json(Map.of("Error", e.getMessage()));
+        }catch (Exception e){
+            ctx.status(500).json(Map.of("Error", "An Internal server error"));
         }
-        ctx.status(200).json(updated);
     }
 
     @Override
     public void delete(Context ctx) {
-        int id = ctx.pathParamAsClass("id",Integer.class)
-                .check(this::validatePrimaryKey,"Not a valid id")
-                .get();
+        try {
+            int id = ctx.pathParamAsClass("id", Integer.class).get();
 
-        boolean deleted = tripService.delete(id);
+            tripService.delete(id);
 
-        if(!deleted) {
-            throw new ApiException(404, "Trip was not found");
+            // success
+            ctx.status(204); // No content
+
+        }catch (ValidationException e){
+            ctx.status(400).json(Map.of("Error", e.getMessage()));
+        }catch (ApiException e){
+            ctx.status(e.getCode()).json(Map.of("Error", e.getMessage()));
+        }catch (Exception e){
+            ctx.status(500).json(Map.of("Error", "An Internal server error"));
         }
-        // success
-        ctx.status(204); // No content
     }
 
     public void linkGuide(Context ctx) {
-        int tripId = ctx.pathParamAsClass("tripId",Integer.class)
-                .check(this::validatePrimaryKey,"Not a valid trip id")
-                .get();
+        try {
+            int tripId = ctx.pathParamAsClass("tripId", Integer.class).get();
 
-        int guideId = ctx.pathParamAsClass("guideId",Integer.class)
-                .get();
+            int guideId = ctx.pathParamAsClass("guideId", Integer.class).get();
 
-        TripDTO updatedTrip = tripService.addGuideToTrip(tripId, guideId);
+            TripDTO updatedTrip = tripService.addGuideToTrip(tripId, guideId);
 
-        if(updatedTrip == null){
-            throw new ApiException(404,"Trip or guide not found");
+            ctx.status(200).json(updatedTrip);
+
+        }catch (ValidationException e){
+            ctx.status(400).json(Map.of("Error", e.getMessage()));
+        }catch (ApiException e){
+            ctx.status(e.getCode()).json(Map.of("Error", e.getMessage()));
+        }catch (Exception e){
+            ctx.status(500).json(Map.of("Error", "An Internal server error"));
         }
-        ctx.status(200).json(updatedTrip);
     }
 
     @Override
@@ -104,55 +138,66 @@ public class TripController implements IController<Trip, Integer> {
         return tripService.validatePrimaryKey(id);
     }
 
-    @Override
-    public Trip validateEntity(Context ctx) {
-        return null;
-    }
-
     public void getByCategory(Context ctx){
-        String category = ctx.queryParam("category");
+        try {
+            String category = ctx.queryParam("category");
 
-        if(category == null || category.isEmpty()){
-            ctx.status(200).json(tripService.getAll());
-            return;
+            if (category == null || category.isEmpty()) {
+                ctx.status(200).json(tripService.getAll());
+                return;
+            }
+
+            List<TripDTO> trips = tripService.getTripsByCategory(category);
+
+            ctx.status(200).json(trips);
+
+        }catch (ApiException e){
+            ctx.status(e.getCode()).json(Map.of("Error", e.getMessage()));
+        }catch (Exception e){
+            ctx.status(500).json(Map.of("Error", "An Internal server error"));
         }
-        List<TripDTO> trips = tripService.getTripsByCategory(category);
-
-        ctx.status(200).json(trips);
     }
 
     // Get packing items for Trip
     public void getPackingItems(Context ctx){
-        int tripId = ctx.pathParamAsClass("id", Integer.class)
-                .check(this::validatePrimaryKey, "Not a valid trip id")
-                .get();
+        try {
+            int tripId = ctx.pathParamAsClass("id", Integer.class).get();
 
-        TripDTO tripDTO = tripService.getById(tripId);
+            TripDTO tripDTO = tripService.getById(tripId);
 
-        if(tripDTO == null){
-            throw new ApiException(404,"Trip was not found");
+            //Getting packing items by using PackingService based on trip Category
+            var items = packingService.fetchPackingItems(tripDTO.getCategory().name());
+
+            ctx.status(200).json(items);
+
+        }catch (ValidationException e){
+            ctx.status(400).json(Map.of("Error", e.getMessage()));
+        }catch (ApiException e){
+            ctx.status(e.getCode()).json(Map.of("Error", e.getMessage()));
+        }catch (Exception e){
+            ctx.status(500).json(Map.of("Error", "An Internal server error"));
         }
-
-        //Getting packing items by using PackingService based on trip Category
-        var items = packingService.fetchPackingItems(tripDTO.getCategory().name());
-        ctx.status(200).json(items);
     }
 
     // Get Total packing weight for Trip
     public void getPackingWeightForTrip(Context ctx){
-        int tripId = ctx.pathParamAsClass("id", Integer.class)
-                .check(this::validatePrimaryKey, "Not a valid trip id")
-                .get();
+        try {
+            int tripId = ctx.pathParamAsClass("id", Integer.class).get();
 
-        TripDTO tripDTO = tripService.getById(tripId);
+            TripDTO tripDTO = tripService.getById(tripId);
 
-        if(tripDTO == null){
-            throw  new ApiException(404,"Trip was not found");
+            // Calculate total weight by using PackingService
+            int totalWeight = packingService.fetchTotalWeight(tripDTO.getCategory().name());
+
+            ctx.status(200).json(totalWeight);
+
+        }catch (ValidationException e){
+            ctx.status(400).json(Map.of("Error", e.getMessage()));
+        }catch (ApiException e){
+            ctx.status(e.getCode()).json(Map.of("Error", e.getMessage()));
+        }catch (Exception e){
+            ctx.status(500).json(Map.of("Error", "An Internal server error"));
         }
-
-        // Calculate total weight by using PackingService
-        int totalWeight = packingService.fetchTotalWeight(tripDTO.getCategory().name());
-        ctx.status(200).json(totalWeight);
     }
 
 
