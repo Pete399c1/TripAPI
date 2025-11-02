@@ -40,6 +40,7 @@ public class TripController implements IController<Trip, Integer> {
         }catch (ApiException e){
             ctx.status(e.getCode()).json(Map.of("Error", e.getMessage()));
         }catch (Exception e){
+            // Converting the Map to. Json
             ctx.status(500).json(Map.of("Error", "An Internal server error"));
         }
     }
@@ -67,6 +68,7 @@ public class TripController implements IController<Trip, Integer> {
             ctx.status(201).json(dto); // 201 created
 
         }catch (ValidationException e){
+            //Map.of takes a key and a value cant be changed after it is made it is a static method
             ctx.status(400).json(Map.of("Error", e.getMessage()));
         }catch (Exception e){
             ctx.status(500).json(Map.of("Error", "An Internal server error"));
@@ -102,8 +104,7 @@ public class TripController implements IController<Trip, Integer> {
 
             tripService.delete(id);
 
-            // success
-            ctx.status(204); // No content
+            ctx.status(204); // success No content
 
         }catch (ValidationException e){
             ctx.status(400).json(Map.of("Error", e.getMessage()));
